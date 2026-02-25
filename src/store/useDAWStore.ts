@@ -94,6 +94,98 @@ const TRACK_COLORS = [
   '#CC5DE8', '#FF922B', '#20C997', '#F06595',
 ];
 
+// ============================================================
+// Default Templates
+// ============================================================
+
+const defaultTemplates: ProjectTemplate[] = [
+  {
+    id: 'tpl-solo-podcast',
+    name: 'Solo Podcast',
+    description: 'Single host podcast with intro/outro',
+    tracks: [
+      {
+        id: 'tpl-track-host', name: 'Host', type: 'audio',
+        color: '#4A9EFF', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: 0, plugins: [], automationLanes: [], height: 100,
+      },
+      {
+        id: 'tpl-track-music', name: 'Music/SFX', type: 'audio',
+        color: '#51CF66', muted: false, solo: false, armed: false,
+        volume: 0.5, pan: 0, plugins: [], automationLanes: [], height: 60,
+      },
+      {
+        id: 'tpl-track-master', name: 'Master', type: 'bus',
+        color: '#FFD43B', muted: false, solo: false, armed: false,
+        volume: 1.0, pan: 0, plugins: [], automationLanes: [], height: 60,
+      },
+    ],
+    defaultPlugins: [],
+    loudnessTarget: -16,
+    category: 'solo',
+  },
+  {
+    id: 'tpl-interview',
+    name: 'Interview (2 Speakers)',
+    description: 'Two-person interview with separate tracks',
+    tracks: [
+      {
+        id: 'tpl-track-host2', name: 'Host', type: 'audio',
+        color: '#4A9EFF', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: -0.2, plugins: [], automationLanes: [], height: 100,
+      },
+      {
+        id: 'tpl-track-guest', name: 'Guest', type: 'audio',
+        color: '#FF6B6B', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: 0.2, plugins: [], automationLanes: [], height: 100,
+      },
+      {
+        id: 'tpl-track-music2', name: 'Music/SFX', type: 'audio',
+        color: '#51CF66', muted: false, solo: false, armed: false,
+        volume: 0.5, pan: 0, plugins: [], automationLanes: [], height: 60,
+      },
+      {
+        id: 'tpl-track-master2', name: 'Master', type: 'bus',
+        color: '#FFD43B', muted: false, solo: false, armed: false,
+        volume: 1.0, pan: 0, plugins: [], automationLanes: [], height: 60,
+      },
+    ],
+    defaultPlugins: [],
+    loudnessTarget: -16,
+    category: 'interview',
+  },
+  {
+    id: 'tpl-panel',
+    name: 'Panel Discussion',
+    description: 'Multi-speaker panel with up to 4 participants',
+    tracks: [
+      {
+        id: 'tpl-track-mod', name: 'Moderator', type: 'audio',
+        color: '#4A9EFF', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: 0, plugins: [], automationLanes: [], height: 80,
+      },
+      {
+        id: 'tpl-track-p1', name: 'Speaker 1', type: 'audio',
+        color: '#FF6B6B', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: -0.3, plugins: [], automationLanes: [], height: 80,
+      },
+      {
+        id: 'tpl-track-p2', name: 'Speaker 2', type: 'audio',
+        color: '#51CF66', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: 0.3, plugins: [], automationLanes: [], height: 80,
+      },
+      {
+        id: 'tpl-track-p3', name: 'Speaker 3', type: 'audio',
+        color: '#CC5DE8', muted: false, solo: false, armed: false,
+        volume: 0.8, pan: -0.1, plugins: [], automationLanes: [], height: 80,
+      },
+    ],
+    defaultPlugins: [],
+    loudnessTarget: -16,
+    category: 'panel',
+  },
+];
+
 const defaultView: ViewState = {
   zoom: 100,
   scrollX: 0,
@@ -416,95 +508,3 @@ export const useDAWStore = create<DAWState>((set, get) => ({
     if (preset) get().createProject(preset.clientName, preset.template);
   },
 }));
-
-// ============================================================
-// Default Templates
-// ============================================================
-
-const defaultTemplates: ProjectTemplate[] = [
-  {
-    id: 'tpl-solo-podcast',
-    name: 'Solo Podcast',
-    description: 'Single host podcast with intro/outro',
-    tracks: [
-      {
-        id: 'tpl-track-host', name: 'Host', type: 'audio',
-        color: '#4A9EFF', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: 0, plugins: [], automationLanes: [], height: 100,
-      },
-      {
-        id: 'tpl-track-music', name: 'Music/SFX', type: 'audio',
-        color: '#51CF66', muted: false, solo: false, armed: false,
-        volume: 0.5, pan: 0, plugins: [], automationLanes: [], height: 60,
-      },
-      {
-        id: 'tpl-track-master', name: 'Master', type: 'bus',
-        color: '#FFD43B', muted: false, solo: false, armed: false,
-        volume: 1.0, pan: 0, plugins: [], automationLanes: [], height: 60,
-      },
-    ],
-    defaultPlugins: [],
-    loudnessTarget: -16,
-    category: 'solo',
-  },
-  {
-    id: 'tpl-interview',
-    name: 'Interview (2 Speakers)',
-    description: 'Two-person interview with separate tracks',
-    tracks: [
-      {
-        id: 'tpl-track-host2', name: 'Host', type: 'audio',
-        color: '#4A9EFF', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: -0.2, plugins: [], automationLanes: [], height: 100,
-      },
-      {
-        id: 'tpl-track-guest', name: 'Guest', type: 'audio',
-        color: '#FF6B6B', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: 0.2, plugins: [], automationLanes: [], height: 100,
-      },
-      {
-        id: 'tpl-track-music2', name: 'Music/SFX', type: 'audio',
-        color: '#51CF66', muted: false, solo: false, armed: false,
-        volume: 0.5, pan: 0, plugins: [], automationLanes: [], height: 60,
-      },
-      {
-        id: 'tpl-track-master2', name: 'Master', type: 'bus',
-        color: '#FFD43B', muted: false, solo: false, armed: false,
-        volume: 1.0, pan: 0, plugins: [], automationLanes: [], height: 60,
-      },
-    ],
-    defaultPlugins: [],
-    loudnessTarget: -16,
-    category: 'interview',
-  },
-  {
-    id: 'tpl-panel',
-    name: 'Panel Discussion',
-    description: 'Multi-speaker panel with up to 4 participants',
-    tracks: [
-      {
-        id: 'tpl-track-mod', name: 'Moderator', type: 'audio',
-        color: '#4A9EFF', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: 0, plugins: [], automationLanes: [], height: 80,
-      },
-      {
-        id: 'tpl-track-p1', name: 'Speaker 1', type: 'audio',
-        color: '#FF6B6B', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: -0.3, plugins: [], automationLanes: [], height: 80,
-      },
-      {
-        id: 'tpl-track-p2', name: 'Speaker 2', type: 'audio',
-        color: '#51CF66', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: 0.3, plugins: [], automationLanes: [], height: 80,
-      },
-      {
-        id: 'tpl-track-p3', name: 'Speaker 3', type: 'audio',
-        color: '#CC5DE8', muted: false, solo: false, armed: false,
-        volume: 0.8, pan: -0.1, plugins: [], automationLanes: [], height: 80,
-      },
-    ],
-    defaultPlugins: [],
-    loudnessTarget: -16,
-    category: 'panel',
-  },
-];
