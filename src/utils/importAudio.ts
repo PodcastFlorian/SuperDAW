@@ -10,7 +10,9 @@ import { useDAWStore } from '../store/useDAWStore';
  */
 export async function importAudioFile(file: File): Promise<void> {
   const engine = getAudioEngine();
-  const store = useDAWStore.getState();
+
+  // Resume AudioContext (required after user gesture in browsers)
+  await engine.resume();
 
   // Read file into ArrayBuffer
   const arrayBuffer = await file.arrayBuffer();
@@ -24,14 +26,14 @@ export async function importAudioFile(file: File): Promise<void> {
 
   // Create a new track
   const trackName = file.name.replace(/\.[^.]+$/, '');
-  store.addTrack('audio', trackName);
+  useDAWStore.getState().addTrack('audio', trackName);
 
   // Get the newly created track (last one added)
   const tracks = useDAWStore.getState().project.tracks;
   const newTrack = tracks[tracks.length - 1];
 
   // Add clip to the track
-  store.addClip(newTrack.id, {
+  useDAWStore.getState().addClip(newTrack.id, {
     name: trackName,
     startTime: 0,
     duration: audioBuffer.duration,
@@ -49,7 +51,8 @@ export async function importAudioFile(file: File): Promise<void> {
  */
 export async function importAudioToTrack(file: File, trackId: string, startTime: number = 0): Promise<void> {
   const engine = getAudioEngine();
-  const store = useDAWStore.getState();
+
+  await engine.resume();
 
   const arrayBuffer = await file.arrayBuffer();
   const bufferKey = `file-${Date.now()}-${file.name}`;
@@ -58,7 +61,7 @@ export async function importAudioToTrack(file: File, trackId: string, startTime:
 
   const clipName = file.name.replace(/\.[^.]+$/, '');
 
-  store.addClip(trackId, {
+  useDAWStore.getState().addClip(trackId, {
     name: clipName,
     startTime,
     duration: audioBuffer.duration,

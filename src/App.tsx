@@ -20,7 +20,8 @@ export const App: React.FC = () => {
     setSelection, splitClip, setActiveTool, setSelectedClip,
   } = useDAWStore();
 
-  const [tracksDragOver, setTracksDragOver] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
   const engineRef = useRef(getAudioEngine());
   const tracksAreaRef = useRef<HTMLDivElement>(null);
 
@@ -68,16 +69,42 @@ export const App: React.FC = () => {
     }
   }, [transportState]);
 
-  // Handle drag-drop audio files onto tracks area
-  const handleTracksDrop = useCallback((e: React.DragEvent) => {
+  // Global drag-drop for audio files (works anywhere in the app)
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setTracksDragOver(false);
+    dragCounterRef.current++;
+    if (dragCounterRef.current === 1) setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setDragOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragOver(false);
     const files = Array.from(e.dataTransfer.files).filter(
       f => f.type.startsWith('audio/') || /\.(wav|mp3|flac|aac|ogg|m4a|webm)$/i.test(f.name)
     );
-    for (const file of files) {
-      importAudioFile(file);
-    }
+    if (files.length === 0) return;
+    // Import sequentially so tracks are created in order
+    (async () => {
+      for (const file of files) {
+        try {
+          await importAudioFile(file);
+        } catch (err) {
+          console.error('Failed to import:', file.name, err);
+        }
+      }
+    })();
   }, []);
 
   // Scroll sync: capture scrollLeft from tracks area and update store
@@ -181,7 +208,30 @@ export const App: React.FC = () => {
   }, [view.zoom, setZoom]);
 
   return (
-    <div style={styles.app}>
+    <div
+      style={styles.app}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Full-screen drop overlay */}
+      {dragOver && (
+        <div style={styles.dropOverlay}>
+          <div style={styles.dropOverlayContent}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+            <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-blue)' }}>
+              Drop audio files to import
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              WAV, MP3, FLAC, AAC, OGG
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top: Transport bar */}
       <TransportBar />
 
@@ -203,23 +253,7 @@ export const App: React.FC = () => {
             ref={tracksAreaRef}
             style={styles.tracksArea}
             onScroll={handleTracksScroll}
-            onDrop={handleTracksDrop}
-            onDragOver={e => { e.preventDefault(); setTracksDragOver(true); }}
-            onDragLeave={() => setTracksDragOver(false)}
           >
-            {/* Drop overlay */}
-            {tracksDragOver && (
-              <div style={styles.dropOverlay}>
-                <div style={styles.dropOverlayContent}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" strokeWidth="1.5">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-                  </svg>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-blue)' }}>
-                    Drop audio files to import
-                  </p>
-                </div>
-              </div>
-            )}
 
             {project.tracks.map(track => (
               <div key={track.id} style={styles.trackRow}>
@@ -313,12 +347,11 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
   },
   dropOverlay: {
-    position: 'absolute',
+    position: 'fixed',
     inset: 0,
-    background: 'rgba(74,158,255,0.08)',
-    border: '2px dashed var(--accent-blue)',
-    borderRadius: 4,
-    zIndex: 20,
+    background: 'rgba(13,13,15,0.85)',
+    border: '3px dashed var(--accent-blue)',
+    zIndex: 100,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -328,7 +361,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   trackRow: {
     display: 'flex',

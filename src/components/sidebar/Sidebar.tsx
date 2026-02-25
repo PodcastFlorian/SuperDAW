@@ -32,6 +32,7 @@ export const Sidebar: React.FC = () => {
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     handleImportFiles(files);

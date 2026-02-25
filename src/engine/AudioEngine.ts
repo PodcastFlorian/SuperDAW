@@ -55,6 +55,12 @@ export class AudioEngine {
     return audioBuffer;
   }
 
+  async resume(): Promise<void> {
+    if (this.context.state === 'suspended') {
+      await this.context.resume();
+    }
+  }
+
   async loadAudioFromArrayBuffer(arrayBuffer: ArrayBuffer, key: string): Promise<AudioBuffer> {
     const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
     this.bufferCache.set(key, audioBuffer);
