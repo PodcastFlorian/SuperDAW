@@ -67,6 +67,56 @@ ipcMain.handle('save-audio-file', async (event, defaultName) => {
   return result.filePath;
 });
 
+// IPC: Download audio from URL via yt-dlp
+ipcMain.handle('download-url', async (event, { url, format, outputFormat }) => {
+  const { execFile } = require('child_process');
+  const os = require('os');
+  const fs = require('fs');
+
+  const outputDir = path.join(app.getPath('userData'), 'downloads');
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+  const outputTemplate = path.join(outputDir, '%(title)s.%(ext)s');
+
+  return new Promise((resolve) => {
+    // Try yt-dlp first, fallback to youtube-dl
+    const ytdlp = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+
+    const args = [
+      url,
+      '-f', format || 'bestaudio',
+      '--extract-audio',
+      '--audio-format', outputFormat || 'wav',
+      '--audio-quality', '0',
+      '-o', outputTemplate,
+      '--no-playlist',
+      '--print-json',
+    ];
+
+    execFile(ytdlp, args, { maxBuffer: 50 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        resolve({ error: `yt-dlp failed: ${error.message}. Make sure yt-dlp is installed.` });
+        return;
+      }
+
+      try {
+        const info = JSON.parse(stdout);
+        const ext = outputFormat || 'wav';
+        const filePath = path.join(outputDir, `${info.title}.${ext}`);
+
+        resolve({
+          filePath,
+          title: info.title,
+          duration: info.duration,
+          thumbnail: info.thumbnail,
+        });
+      } catch (parseErr) {
+        resolve({ error: `Failed to parse yt-dlp output` });
+      }
+    });
+  });
+});
+
 // IPC: Plugin scan paths
 ipcMain.handle('get-plugin-paths', () => {
   if (process.platform === 'darwin') {

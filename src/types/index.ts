@@ -49,7 +49,7 @@ export interface Clip {
 
 export interface ClipRegion {
   id: string;
-  type: 'filler' | 'silence' | 'speech' | 'music' | 'noise';
+  type: 'filler' | 'silence' | 'speech' | 'music' | 'noise' | 'breath' | 'stutter';
   startTime: number;
   endTime: number;
   confidence: number;
@@ -104,8 +104,14 @@ export interface AIAnalysis {
   fillerWords: TranscriptSegment[];
   silences: ClipRegion[];
   noiseRegions: ClipRegion[];
+  breathRegions: ClipRegion[];
   loudnessProfile: LoudnessProfile;
   suggestedCuts: SuggestedCut[];
+  speakers: SpeakerProfile[];
+  chapters: ChapterMarker[];
+  summary: ContentSummary | null;
+  sentimentTimeline: SentimentPoint[];
+  repetitions: RepetitionRegion[];
 }
 
 export interface LoudnessProfile {
@@ -121,7 +127,7 @@ export interface SuggestedCut {
   startTime: number;
   endTime: number;
   reason: string;
-  type: 'filler' | 'silence' | 'noise' | 'repetition';
+  type: 'filler' | 'silence' | 'noise' | 'repetition' | 'breath' | 'stutter';
   confidence: number;
   applied: boolean;
 }
@@ -216,4 +222,125 @@ export interface Marker {
   name: string;
   color: string;
   type: 'marker' | 'loop-start' | 'loop-end' | 'chapter';
+}
+
+// ============================================================
+// Speaker Diarization
+// ============================================================
+
+export interface SpeakerProfile {
+  id: string;
+  label: string;
+  color: string;
+  totalSpeakingTime: number;
+  segments: SpeakerSegment[];
+  voiceProfile: VoiceProfile;
+}
+
+export interface SpeakerSegment {
+  startTime: number;
+  endTime: number;
+  confidence: number;
+}
+
+export interface VoiceProfile {
+  pitchMean: number;       // Hz
+  pitchRange: number;      // Hz
+  energyMean: number;      // dB
+  suggestedEQ: EQPreset;
+}
+
+export interface EQPreset {
+  name: string;
+  bands: Array<{
+    frequency: number;
+    gain: number;
+    q: number;
+    type: 'lowshelf' | 'highshelf' | 'peaking' | 'highpass' | 'lowpass';
+  }>;
+}
+
+// ============================================================
+// Smart Chapters
+// ============================================================
+
+export interface ChapterMarker {
+  id: string;
+  startTime: number;
+  endTime: number;
+  title: string;
+  summary: string;
+  keywords: string[];
+  confidence: number;
+}
+
+// ============================================================
+// Content Summary & Show Notes
+// ============================================================
+
+export interface ContentSummary {
+  title: string;
+  shortSummary: string;
+  longSummary: string;
+  showNotes: string;
+  keyTopics: string[];
+  mentions: ContentMention[];
+  suggestedTags: string[];
+}
+
+export interface ContentMention {
+  text: string;
+  type: 'person' | 'product' | 'company' | 'place' | 'concept';
+  firstMentionTime: number;
+}
+
+// ============================================================
+// Sentiment & Energy Analysis
+// ============================================================
+
+export interface SentimentPoint {
+  time: number;
+  sentiment: number;       // -1 to 1
+  energy: number;          // 0 to 1
+  label?: string;
+}
+
+// ============================================================
+// Repetition / Stutter Detection
+// ============================================================
+
+export interface RepetitionRegion {
+  id: string;
+  startTime: number;
+  endTime: number;
+  type: 'stutter' | 'word-repeat' | 'phrase-repeat' | 'false-start';
+  text: string;
+  confidence: number;
+}
+
+// ============================================================
+// URL Audio Download
+// ============================================================
+
+export interface URLDownloadRequest {
+  url: string;
+  format: 'audio' | 'video';
+  quality: 'best' | 'good' | '128k' | '192k' | '320k';
+}
+
+export interface URLDownloadResult {
+  success: boolean;
+  filePath?: string;
+  title?: string;
+  duration?: number;
+  thumbnail?: string;
+  error?: string;
+  source: 'youtube' | 'soundcloud' | 'spotify' | 'direct' | 'unknown';
+}
+
+export interface URLDownloadProgress {
+  percent: number;
+  speed?: string;
+  eta?: string;
+  status: 'resolving' | 'downloading' | 'converting' | 'done' | 'error';
 }

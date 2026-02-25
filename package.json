@@ -1,6 +1,6 @@
 {
   "name": "superdaw",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI-driven Audio DAW for Podcast Production",
   "main": "electron/main.js",
   "scripts": {
