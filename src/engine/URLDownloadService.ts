@@ -157,7 +157,7 @@ export class URLDownloadService {
     onProgress?.({ percent: 100, status: 'done' });
 
     // Create a blob URL for the downloaded audio
-    const blob = new Blob(chunks);
+    const blob = new Blob(chunks as BlobPart[]);
     const blobUrl = URL.createObjectURL(blob);
     const fileName = request.url.split('/').pop()?.split('?')[0] || 'download';
 
