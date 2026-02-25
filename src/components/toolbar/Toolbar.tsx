@@ -1,13 +1,11 @@
 import React from 'react';
 import { useDAWStore } from '../../store/useDAWStore';
-
-type Tool = 'select' | 'range' | 'split' | 'draw' | 'eraser';
+import type { ToolMode } from '../../store/useDAWStore';
 
 export const Toolbar: React.FC = () => {
-  const [activeTool, setActiveTool] = React.useState<Tool>('select');
   const {
     view, setZoom, toggleSnap, toggleTranscript, toggleAIPanel, toggleMixer,
-    addTrack,
+    addTrack, activeTool, setActiveTool,
   } = useDAWStore();
 
   return (
@@ -19,7 +17,7 @@ export const Toolbar: React.FC = () => {
           { id: 'range', label: 'Range (R)', icon: 'M4 7v10M20 7v10M4 12h16' },
           { id: 'split', label: 'Split (S)', icon: 'M12 2v20M8 8l4-4 4 4M8 16l4 4 4-4' },
           { id: 'eraser', label: 'Eraser (E)', icon: 'M20 20H7l-4-4 9-9 8 8-4 4zM18 13l-8-8' },
-        ] as { id: Tool; label: string; icon: string }[]).map(tool => (
+        ] as { id: ToolMode; label: string; icon: string }[]).map(tool => (
           <button
             key={tool.id}
             style={{

@@ -15,13 +15,14 @@ import { importAudioFile } from './utils/importAudio';
 export const App: React.FC = () => {
   const {
     project, view, addTrack, play, pause, stop,
-    setCurrentTime, transportState, setZoom,
+    setCurrentTime, transportState, setZoom, setScroll,
     toggleMixer, toggleAIPanel, toggleTranscript,
-    setSelection, splitClip,
+    setSelection, splitClip, setActiveTool, setSelectedClip,
   } = useDAWStore();
 
   const [tracksDragOver, setTracksDragOver] = useState(false);
   const engineRef = useRef(getAudioEngine());
+  const tracksAreaRef = useRef<HTMLDivElement>(null);
 
   // Wire audio engine time updates to store
   useEffect(() => {
@@ -79,6 +80,12 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Scroll sync: capture scrollLeft from tracks area and update store
+  const handleTracksScroll = useCallback((e: React.UIEvent) => {
+    const el = e.currentTarget;
+    setScroll(el.scrollLeft, el.scrollTop);
+  }, [setScroll]);
+
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Ignore when typing in inputs
@@ -97,6 +104,31 @@ export const App: React.FC = () => {
       case 'Home':
         setCurrentTime(0);
         break;
+      case 'v':
+      case 'V':
+        if (!e.ctrlKey && !e.metaKey) setActiveTool('select');
+        break;
+      case 'r':
+      case 'R':
+        if (!e.ctrlKey && !e.metaKey) setActiveTool('range');
+        break;
+      case 's':
+      case 'S':
+        if (!e.ctrlKey && !e.metaKey) setActiveTool('split');
+        break;
+      case 'e':
+      case 'E':
+        if (!e.ctrlKey && !e.metaKey) setActiveTool('eraser');
+        break;
+      case 'Delete':
+      case 'Backspace': {
+        const state = useDAWStore.getState();
+        if (state.selectedClipId && state.selectedTrackId) {
+          state.removeClip(state.selectedTrackId, state.selectedClipId);
+          state.setSelectedClip(null, null);
+        }
+        break;
+      }
       case 'm':
       case 'M':
         if (e.ctrlKey || e.metaKey) toggleMixer();
@@ -132,7 +164,7 @@ export const App: React.FC = () => {
         setSelection(null, null);
         break;
     }
-  }, [transportState, play, pause, stop, setCurrentTime, setZoom, view.zoom, toggleMixer, toggleAIPanel, toggleTranscript, setSelection]);
+  }, [transportState, play, pause, stop, setCurrentTime, setZoom, view.zoom, toggleMixer, toggleAIPanel, toggleTranscript, setSelection, setActiveTool]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -168,7 +200,9 @@ export const App: React.FC = () => {
 
           {/* Tracks area */}
           <div
+            ref={tracksAreaRef}
             style={styles.tracksArea}
+            onScroll={handleTracksScroll}
             onDrop={handleTracksDrop}
             onDragOver={e => { e.preventDefault(); setTracksDragOver(true); }}
             onDragLeave={() => setTracksDragOver(false)}

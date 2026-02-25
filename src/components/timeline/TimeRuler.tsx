@@ -21,7 +21,6 @@ export const TimeRuler: React.FC = () => {
   else if (pixelsPerSecond < 150) interval = 1;
   else interval = 0.5;
 
-  const totalWidth = 3600 * pixelsPerSecond; // 1 hour max
   const startTime = Math.floor(view.scrollX / pixelsPerSecond / interval) * interval;
   const visibleWidth = 2000; // approximate
   const endTime = startTime + visibleWidth / pixelsPerSecond + interval;
@@ -37,6 +36,11 @@ export const TimeRuler: React.FC = () => {
 
   const playheadX = currentTime * pixelsPerSecond - view.scrollX;
 
+  // Selection
+  const selStart = view.selectionStart;
+  const selEnd = view.selectionEnd;
+  const hasSelection = selStart !== null && selEnd !== null && selEnd > selStart;
+
   const formatRulerTime = (seconds: number): string => {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
@@ -47,6 +51,17 @@ export const TimeRuler: React.FC = () => {
   return (
     <div ref={rulerRef} style={styles.container} onClick={handleClick}>
       <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+        {/* Selection range */}
+        {hasSelection && (
+          <rect
+            x={selStart! * pixelsPerSecond - view.scrollX}
+            y={0}
+            width={(selEnd! - selStart!) * pixelsPerSecond}
+            height={28}
+            fill="rgba(74,158,255,0.15)"
+          />
+        )}
+
         {ticks.map((tick, i) => (
           <g key={i}>
             <line

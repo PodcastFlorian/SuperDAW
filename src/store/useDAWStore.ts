@@ -6,6 +6,8 @@ import type {
   EditingPattern, EditAction, EditContext, SidebarTab,
 } from '../types';
 
+export type ToolMode = 'select' | 'range' | 'split' | 'eraser';
+
 interface DAWState {
   // Project
   project: Project;
@@ -22,6 +24,11 @@ interface DAWState {
   // View
   view: ViewState;
   markers: Marker[];
+
+  // Tool & Selection
+  activeTool: ToolMode;
+  selectedClipId: string | null;
+  selectedTrackId: string | null;
 
   // AI
   aiAnalysis: AIAnalysis | null;
@@ -68,6 +75,10 @@ interface DAWState {
   toggleTranscript: () => void;
   toggleAIPanel: () => void;
   toggleMixer: () => void;
+
+  // Actions - Tool & Selection
+  setActiveTool: (tool: ToolMode) => void;
+  setSelectedClip: (clipId: string | null, trackId: string | null) => void;
 
   // Actions - Markers
   addMarker: (time: number, name: string, type?: Marker['type']) => void;
@@ -231,6 +242,9 @@ export const useDAWStore = create<DAWState>((set, get) => ({
   autopilotEnabled: false,
   templates: defaultTemplates,
   customerPresets: [],
+  activeTool: 'select',
+  selectedClipId: null,
+  selectedTrackId: null,
 
   // Project
   createProject: (name, template) => {
@@ -438,6 +452,10 @@ export const useDAWStore = create<DAWState>((set, get) => ({
   toggleMixer: () => set(state => ({
     view: { ...state.view, showMixer: !state.view.showMixer },
   })),
+
+  // Tool & Selection
+  setActiveTool: (tool) => set({ activeTool: tool }),
+  setSelectedClip: (clipId, trackId) => set({ selectedClipId: clipId, selectedTrackId: trackId }),
 
   // Markers
   addMarker: (time, name, type = 'marker') => set(state => ({

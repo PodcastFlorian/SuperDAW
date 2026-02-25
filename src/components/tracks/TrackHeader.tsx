@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { Track } from '../../types';
 import { useDAWStore } from '../../store/useDAWStore';
 
@@ -9,8 +9,27 @@ interface TrackHeaderProps {
 export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
   const { updateTrack, removeTrack } = useDAWStore();
 
+  // Resize handle drag
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = track.height;
+
+    const onMove = (me: MouseEvent) => {
+      const dy = me.clientY - startY;
+      const newHeight = Math.max(40, Math.min(300, startHeight + dy));
+      updateTrack(track.id, { height: newHeight });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [track.id, track.height, updateTrack]);
+
   return (
-    <div style={{ ...styles.container, borderLeftColor: track.color }}>
+    <div style={{ ...styles.container, borderLeftColor: track.color, height: track.height }}>
       {/* Track name */}
       <div style={styles.nameRow}>
         <div
@@ -98,6 +117,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
           title={`Pan: ${track.pan === 0 ? 'C' : track.pan < 0 ? `L${Math.round(Math.abs(track.pan) * 100)}` : `R${Math.round(track.pan * 100)}`}`}
         />
       </div>
+
+      {/* Resize handle at bottom */}
+      <div
+        style={styles.resizeHandle}
+        onMouseDown={handleResizeStart}
+      />
     </div>
   );
 };
@@ -114,6 +139,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: 4,
     flexShrink: 0,
+    position: 'relative',
   },
   nameRow: {
     display: 'flex',
@@ -177,5 +203,14 @@ const styles: Record<string, React.CSSProperties> = {
     height: 4,
     accentColor: 'var(--accent-orange)',
     cursor: 'pointer',
+  },
+  resizeHandle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 4,
+    cursor: 'ns-resize',
+    background: 'transparent',
   },
 };
