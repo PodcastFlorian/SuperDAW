@@ -155,3 +155,8 @@ input:focus, select:focus {
 [data-tooltip]:hover::after {
   opacity: 1;
 }
+
+/* Spinner animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

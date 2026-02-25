@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useDAWStore } from './store/useDAWStore';
 import { TransportBar } from './components/transport/TransportBar';
 import { Toolbar } from './components/toolbar/Toolbar';
@@ -9,6 +9,8 @@ import { TrackLane } from './components/tracks/TrackLane';
 import { MixerPanel } from './components/mixer/MixerPanel';
 import { AIPanel } from './components/ai/AIPanel';
 import { TranscriptOverlay } from './components/timeline/TranscriptOverlay';
+import { getAudioEngine } from './engine/AudioEngine';
+import { importAudioFile } from './utils/importAudio';
 
 export const App: React.FC = () => {
   const {
@@ -18,12 +20,62 @@ export const App: React.FC = () => {
     setSelection, splitClip,
   } = useDAWStore();
 
-  // Initialize with demo tracks if empty
+  const [tracksDragOver, setTracksDragOver] = useState(false);
+  const engineRef = useRef(getAudioEngine());
+
+  // Wire audio engine time updates to store
   useEffect(() => {
-    if (project.tracks.length === 0) {
-      addTrack('audio', 'Host');
-      addTrack('audio', 'Guest');
-      addTrack('audio', 'Music/SFX');
+    const engine = engineRef.current;
+    engine.setOnTimeUpdate((time) => {
+      useDAWStore.getState().setCurrentTime(time);
+    });
+    return () => engine.setOnTimeUpdate(() => {});
+  }, []);
+
+  // React to transport state changes
+  useEffect(() => {
+    const engine = engineRef.current;
+    const state = useDAWStore.getState();
+    if (transportState === 'playing') {
+      // Gather all clips from all non-muted tracks
+      const clips: Array<{
+        id: string; bufferKey: string; startTime: number;
+        offset: number; duration: number; gain: number;
+        pan: number; fadeIn: number; fadeOut: number;
+      }> = [];
+      for (const track of state.project.tracks) {
+        if (track.muted) continue;
+        for (const clip of track.clips) {
+          clips.push({
+            id: clip.id,
+            bufferKey: clip.audioBufferUrl,
+            startTime: clip.startTime,
+            offset: clip.offset,
+            duration: clip.duration,
+            gain: clip.gain * track.volume,
+            pan: track.pan,
+            fadeIn: clip.fadeIn,
+            fadeOut: clip.fadeOut,
+          });
+        }
+      }
+      engine.play(clips, state.currentTime);
+    } else if (transportState === 'paused') {
+      engine.pause();
+    } else if (transportState === 'stopped') {
+      engine.stop();
+    }
+  }, [transportState]);
+
+  // Handle drag-drop audio files onto tracks area
+  const handleTracksDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setTracksDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(
+      f => f.type.startsWith('audio/') || /\.(wav|mp3|flac|aac|ogg|m4a|webm)$/i.test(f.name)
+    );
+    for (const file of files) {
+      importAudioFile(file);
     }
   }, []);
 
@@ -115,7 +167,26 @@ export const App: React.FC = () => {
           <TimeRuler />
 
           {/* Tracks area */}
-          <div style={styles.tracksArea}>
+          <div
+            style={styles.tracksArea}
+            onDrop={handleTracksDrop}
+            onDragOver={e => { e.preventDefault(); setTracksDragOver(true); }}
+            onDragLeave={() => setTracksDragOver(false)}
+          >
+            {/* Drop overlay */}
+            {tracksDragOver && (
+              <div style={styles.dropOverlay}>
+                <div style={styles.dropOverlayContent}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" strokeWidth="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                  </svg>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-blue)' }}>
+                    Drop audio files to import
+                  </p>
+                </div>
+              </div>
+            )}
+
             {project.tracks.map(track => (
               <div key={track.id} style={styles.trackRow}>
                 <TrackHeader track={track} />
@@ -128,7 +199,7 @@ export const App: React.FC = () => {
               <div style={styles.emptyTracks}>
                 <p style={styles.emptyText}>No tracks yet</p>
                 <p style={styles.emptySubtext}>
-                  Click "+ Track" or drop audio files to get started
+                  Drop audio files here or click "+ Track" to get started
                 </p>
               </div>
             )}
@@ -205,6 +276,25 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     overflow: 'auto',
     background: 'var(--bg-darkest)',
+    position: 'relative',
+  },
+  dropOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(74,158,255,0.08)',
+    border: '2px dashed var(--accent-blue)',
+    borderRadius: 4,
+    zIndex: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  dropOverlayContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 8,
   },
   trackRow: {
     display: 'flex',

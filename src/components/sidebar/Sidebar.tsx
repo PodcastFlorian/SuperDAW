@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useDAWStore } from '../../store/useDAWStore';
+import { importAudioFile } from '../../utils/importAudio';
 import type { SidebarTab } from '../../types';
 
 export const Sidebar: React.FC = () => {
@@ -8,16 +9,40 @@ export const Sidebar: React.FC = () => {
     loadTemplate, addTrack, addClip,
   } = useDAWStore();
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleImportFiles = useCallback(async (files: File[]) => {
+    const audioFiles = files.filter(
+      f => f.type.startsWith('audio/') || /\.(wav|mp3|flac|aac|ogg|m4a|webm)$/i.test(f.name)
+    );
+    if (audioFiles.length === 0) return;
+    setImporting(true);
+    try {
+      for (const file of audioFiles) {
+        await importAudioFile(file);
+      }
+    } catch (err) {
+      console.error('Audio import failed:', err);
+    } finally {
+      setImporting(false);
+    }
+  }, []);
+
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const files = Array.from(e.dataTransfer.files).filter(
-      f => f.type.startsWith('audio/')
-    );
-    // In production: load files into tracks
-    for (const file of files) {
-      addTrack('audio', file.name.replace(/\.[^.]+$/, ''));
-    }
-  }, [addTrack]);
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    handleImportFiles(files);
+  }, [handleImportFiles]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    handleImportFiles(files);
+    // Reset so the same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [handleImportFiles]);
 
   const tabs: Array<{ id: SidebarTab; label: string }> = [
     { id: 'files', label: 'Files' },
@@ -48,17 +73,43 @@ export const Sidebar: React.FC = () => {
       <div style={styles.content}>
         {/* Files Tab */}
         {view.sidebarTab === 'files' && (
-          <div
-            style={styles.dropZone}
-            onDrop={handleFileDrop}
-            onDragOver={e => e.preventDefault()}
-          >
-            <div style={styles.dropZoneInner}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-              </svg>
-              <p style={styles.dropText}>Drop audio files here</p>
-              <p style={styles.dropSubtext}>WAV, MP3, FLAC, AAC</p>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,.wav,.mp3,.flac,.aac,.ogg,.m4a,.webm"
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleFileSelect}
+            />
+            <div
+              style={{
+                ...styles.dropZone,
+                borderColor: dragOver ? 'var(--accent-blue)' : undefined,
+                background: dragOver ? 'rgba(74,158,255,0.05)' : undefined,
+              }}
+              onDrop={handleFileDrop}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onClick={() => !importing && fileInputRef.current?.click()}
+            >
+              <div style={styles.dropZoneInner}>
+                {importing ? (
+                  <>
+                    <div style={styles.spinner} />
+                    <p style={styles.dropText}>Importing audio...</p>
+                  </>
+                ) : (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={dragOver ? 'var(--accent-blue)' : 'var(--text-muted)'} strokeWidth="1.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                    </svg>
+                    <p style={styles.dropText}>Drop audio files here</p>
+                    <p style={styles.dropSubtext}>or click to browse</p>
+                    <p style={styles.dropSubtext}>WAV, MP3, FLAC, AAC, OGG</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -217,6 +268,14 @@ const styles: Record<string, React.CSSProperties> = {
   dropSubtext: {
     fontSize: 10,
     color: 'var(--text-muted)',
+  },
+  spinner: {
+    width: 24,
+    height: 24,
+    border: '2px solid var(--border-medium)',
+    borderTopColor: 'var(--accent-blue)',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
   },
   sectionTitle: {
     fontSize: 10,
